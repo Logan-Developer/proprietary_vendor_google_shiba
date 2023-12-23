@@ -1,0 +1,294 @@
+#
+# Shiba sensor device configuration registry script for the EVT stage.
+#
+# Source of truth: go/pixel-sensor-list
+#
+
+#
+# CDT Filter <CDT>:<mask>
+# CDT format: <0xPPPPSJIV> (P:Product, S:Stage, J:Major, I:Minor, V:Variant)
+# go/pixel-cdt-zuma
+#
+
+?+0x33000:0xFFFFF000  # EVT
+# Exclude
+?-0x33114:0xFFFFFFFF  # EVT Wingboard
+
+#
+# Record reg_script.
+#
+
++/
+reg_script=shiba_evt.reg
+
+#
+# Sensors
+#
+
+# MAG (MMC5633NJ)
++/dev/mmc56x3x/0/mag
+  fac_cal_transform=1.0814 0.0236 0.0239 0.0213 0.9023 0.0504 -0.0401 0.0116 1.3055 0.0 0.0 0.0
+
+# BARO (ICP20100)
++/dev/icp20100/1
+  bus_name=i2c0
+  bus_freq_hz=400000
+  bus_addr=0x64
+  min_period_us=25000
++/dev/icp20100/1/baro
++/dev/icp20100/1/temp
+
+# ALSP (TMD37193)
++/dev/tmd3719/0
+  bus_name=i2c0
+  bus_freq_hz=400000
+  bus_addr=0x39
+  intr_id=45
+  sync_delay_ns=4998766
+  # falling edge = 0, rising edge = 1
+  te2_alignment=1
+  anti_aliasing=1
+  debug_enable=1
+
++/dev/tmd3719/0/als
+  lux_scale=3.732433
+  c_coef=1
+  r_coef=-0.765091
+  g_coef=0.986515
+  b_coef=-1.221424
+  itime_table_brightness=658 901 1115 2565 3514 4096
+  itime_table=1400000 1400000 800000 181750 181750 1400000
+  max_gain_table=11 10 10 9 8 8
+  # int{<hard_stop> <C_boost> <R_boost> <G_boost> <B_boost>}
+  # max_gain[color] = MIN(hard_stop, max_gain_table[brightness] +
+  #                                  max_gain_chan_boost[color])
+  max_gain_chan_boost=11 0 1 1 2
+  fast_filter_size=10
+  slow_filter_size=100
+  aod_fast_filter_size=2
+  aod_slow_filter_size=2
+  max_lux=160000
+  high_IR_threshold=2.0
+  # Number of EM cycles in a 60Hz frame.
+  EM_cycle_count_60Hz=4
+  # Step-size (in EM slots) for each rotation.
+  rotation_step_size=1
+  new_gain_ratio=1
+
+  clear_gain11_ratio=0.11625535387073455
+  red_gain11_ratio=0.11494924504976897
+  green_gain11_ratio=0.11410777377297202
+  blue_gain11_ratio=0.11436384033562808
+
+  clear_gain10_ratio=0.2429366201591872
+  red_gain10_ratio=0.2417615451458759
+  green_gain10_ratio=0.2411461883740554
+  blue_gain10_ratio=0.24135573586873238
+
+  clear_gain9_ratio=0.49537377596374205
+  red_gain9_ratio=0.4944763017620627
+  green_gain9_ratio=0.49411826809132353
+  blue_gain9_ratio=0.49421853876085087
+
+  clear_gain7_ratio=2.007158703756766
+  red_gain7_ratio=2.0094122647224655
+  green_gain7_ratio=2.0101826273507655
+  blue_gain7_ratio=2.0101143454281263
+
+  clear_gain6_ratio=4.018255323395394
+  red_gain6_ratio=4.026196393396218
+  green_gain6_ratio=4.0287260772874784
+  blue_gain6_ratio=4.028533405049345
+
+  # Histogram Configuration.
+  # Disable until ready.
+  histo_enable=1
+  # Display coordinates go from top left to bottom right.
+  histo_roi_left=260
+  histo_roi_top=260
+  histo_roi_right=400
+  histo_roi_bottom=400
+  # Weights applied to the RBG color samples to calculate luma.
+  # luma values:
+  # luma = W_R * R + W_G * G + WB * B
+  # with W_R + W_G + W_B = 1024
+  histo_weight_r=146
+  histo_weight_g=806
+  histo_weight_b=72
+  #
+  # Leakage calculator configuration. The general format is:
+  #   leakage = luma_term(luma, dbv) * dbv_term(dbv)
+  # The luma_term maps luma into a value and different equations may be used
+  # depending on the current DBV value.
+  # Similar, the dbv_term maps DBV into a value and may also use different
+  # equations.
+  # Each line represents one equation, and is of the format:
+  #   start-dbv end-dbv equation-type {coefficients}
+  # This means the equation applies to the DBV range [start-dbv .. end-dbv].
+  # There are two equation types currently:
+  #    0: Polynominal: c0 + c1*L + c2*L^2 + .. + ci*L^i
+  #    1: Natural Log: c0 + c1*ln(L + c2)
+  histo_luma_eq0=0 208 0 0e0
+  histo_luma_eq1=209 4096 0 0e0 7.87649495E-04 9.91676468E-06 9.30633047E-09
+  histo_dbv_eq0=0 208 0 0e0
+  histo_dbv_eq1=209 1115 0 1.15276982E+00 -7.71696917E-04 3.50379344E-06 -8.42689794E-10
+  histo_dbv_eq2=1116 3514 0 -1.03807638E+00 7.40530243E-03
+  histo_dbv_eq3=3515 4096 0 -1.2985E+03 6.1367E-01
+
+  # The maximum brightness (DBV) value up to which histogram is active.
+  # This value should match one of the itime_table_brightness values.
+  histo_max_brightness=4096
+  # Minimum change needed for a leakage value to be reported, i.e.,
+  # min_change = MAX(min_change_value, current_leakage_val * min_change_rate)
+  histo_min_change_value=0.01
+  histo_min_change_rate=0.01
+  # Histogram polling interval in ms.
+  histo_polling_interval=50
+  # Fallback luma value to use when histogram returns error (e.g., due to DRM).
+  histo_fallback_luma=128.0
+
++/dev/tmd3719/0/prox
+  auto_baseline=1
+  # Configures burst-delay as a lookup table using luma as input.
+  # The input luma will be compared with the first array from left to right.
+  # When it is less than or equal to the value in the array, the value at the
+  # same position in the burst_delay array is used.
+  burst_delay_luma_60hz=112 255
+  burst_delay_60hz=136 123
+  burst_delay_luma_120hz=64 255
+  burst_delay_120hz=61 55
+
+  burst_delay_aod=230
+  hxtalk=1
+  pulse_count=1
+  vcsel_ma=10
+  pd0_far_threshold=40
+  pd0_near_threshold=70
+  pd1_far_threshold=60
+  pd1_near_threshold=110
+  # "Low power" operating parameters.
+  pulse_len_us=256
+  filter_len=4
+  skip_count=0
+  pdata0_scale=1.57
+  pdata1_scale=1.13
+  gain0=4
+  gain1=8
+  # "High power" operating parameters.
+  hp_pulse_len_us=256
+  hp_filter_len=1
+  hp_skip_count=0
+  hp_pdata0_scale=1.57
+  hp_pdata1_scale=1.13
+  hp_pdata0_offset=0
+  hp_pdata1_offset=0
+  hp_gain0=4
+  hp_gain1=8
+  # High power only if value > 0.
+  high_power_mode_only=1
+
+  max_lux_valid_for_baselining=0.0
+  max_ir_valid_for_baselining=1.0
+
++/dev/tmd3719/0/panel-b
+  sync_delay_ns=4962673
+
++/dev/tmd3719/0/panel-b/als
+  itime_table_brightness=680 1073 1428 2193 2631 3041 3574 3828
+  itime_table=1400000 1400000 1400000 1400000 800000 181750 181750 1400000
+  max_gain_table=11 10 10 9 9 9 8 8
+  # int{<hard_stop> <C_boost> <R_boost> <G_boost> <B_boost>}
+  # max_gain[color] = MIN(hard_stop, max_gain_table[brightness] +
+  #                                  max_gain_chan_boost[color])
+  max_gain_chan_boost=11 0 1 1 2
+  high_IR_threshold=2.5
+
+  # Histogram Configuration.
+  # Disable until ready.
+  histo_enable=1
+  # Display coordinates go from top left to bottom right.
+  histo_roi_left=260
+  histo_roi_top=260
+  histo_roi_right=400
+  histo_roi_bottom=400
+  # Weights applied to the RBG color samples to calculate luma.
+  # luma values:
+  # luma = W_R * R + W_G * G + WB * B
+  # with W_R + W_G + W_B = 1024
+  histo_weight_r=216
+  histo_weight_g=736
+  histo_weight_b=72
+  #
+  # Leakage calculator configuration. The general format is:
+  #   leakage = luma_term(luma, dbv) * dbv_term(dbv)
+  # The luma_term maps luma into a value and different equations may be used
+  # depending on the current DBV value.
+  # Similar, the dbv_term maps DBV into a value and may also use different
+  # equations.
+  # Each line represents one equation, and is of the format:
+  #   start-dbv end-dbv equation-type {coefficients}
+  # This means the equation applies to the DBV range [start-dbv .. end-dbv].
+  # There are two equation types currently:
+  #    0: Polynominal: c0 + c1*L + c2*L^2 + .. + ci*L^i
+  #    1: Natural Log: c0 + c1*ln(L + c2)
+  histo_luma_eq0=0 0 0 0e0
+  histo_luma_eq1=1 3828 0 0e0 8.42741807E-05 1.49193871E-05 5.05201766E-10
+  histo_dbv_eq0=0 0 0 0e0
+  histo_dbv_eq1=1 2193 0 1.67793328E+00 -3.90648589E-04 9.01033905E-07 -1.16337601E-10
+  histo_dbv_eq2=2194 3574 0 2.25620936E+02 -2.45556510E-01 8.75465901E-05 -9.96545823E-09
+  histo_dbv_eq3=3575 3828 0 -1.9735E+03 7.3144E-01
+
+  # The maximum brightness (DBV) value up to which histogram is active.
+  # This value should match one of the itime_table_brightness values.
+  histo_max_brightness=3828
+  # Minimum change needed for a leakage value to be reported, i.e.,
+  # min_change = MAX(min_change_value, current_leakage_val * min_change_rate)
+  histo_min_change_value=0.01
+  histo_min_change_rate=0.01
+  # Histogram polling interval in ms.
+  histo_polling_interval=50
+  # Fallback luma value to use when histogram returns error (e.g., due to DRM).
+  histo_fallback_luma=128.0
+
++/dev/tmd3719/0/panel-b/prox
+  # Configures burst-delay as a lookup table using luma as input.
+  # The input luma will be compared with the first array from left to right.
+  # When it is less than or equal to the value in the array, the value at the
+  # same position in the burst_delay array is used.
+  burst_delay_luma_60hz=112 255
+  burst_delay_60hz=120 120
+  burst_delay_luma_120hz=64 255
+  burst_delay_120hz=157 157
+
+  pd0_far_threshold=30
+  pd0_near_threshold=60
+  pd1_far_threshold=60
+  pd1_near_threshold=80
+  # "Low power" operating parameters.
+  pulse_len_us=512
+  pdata0_scale=2.21
+  pdata1_scale=1.66
+  gain0=1
+  gain1=2
+  # "High power" operating parameters.
+  hp_pulse_len_us=512
+  hp_pdata0_scale=2.21
+  hp_pdata1_scale=1.66
+  hp_gain0=1
+  hp_gain1=2
+
+  max_lux_valid_for_baselining=0.0
+  max_ir_valid_for_baselining=1.0
+
++/dev/vd6282/0/spectral
+  # Golden values for calibration.
+  golden_rals_r=952
+  golden_rals_g=1073
+  golden_rals_b=267
+  golden_rals_clr1=4686
+  golden_rals_ir=3059
+  golden_rals_clr2=4711
+
++/dev/vd6282/0/rls
+  fix_fac_cal=1
+  lux_scale=115.58067
