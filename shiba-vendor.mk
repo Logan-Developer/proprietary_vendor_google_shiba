@@ -103,7 +103,6 @@ PRODUCT_PACKAGES += \
     LLKAgent \
     MyVerizonServices \
     OemRilService \
-    PixelDisplayService \
     PixelNfc \
     PixelQualifiedNetworksService \
     RilConfigService \
